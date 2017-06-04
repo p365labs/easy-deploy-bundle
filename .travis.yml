@@ -1,0 +1,58 @@
+sudo: required
+
+services:
+  - docker
+
+cache:
+  directories:
+    - $HOME/.composer/cache/files
+
+branches:
+  only:
+    - master
+
+env:
+#  - TARGET="53"
+  - TARGET="54"
+  - TARGET="55"
+  - TARGET="56"
+  - TARGET="70"
+  - TARGET="71"
+
+before_install:
+  - stty cols 120
+  - INI_FILE=~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
+  - echo memory_limit = -1 >> $INI_FILE
+  - echo session.gc_probability = 0 >> $INI_FILE
+  - echo opcache.enable_cli = 1 >> $INI_FILE
+  - rm -f ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini
+  - composer self-update
+  - if [[ "$SYMFONY_VERSION" != "" ]]; then composer require "symfony/symfony:${SYMFONY_VERSION}" --no-update; fi;
+
+  # list docker-engine versions, usefull to update the docker engine on travis and trusty
+  #- apt-cache madison docker-engine
+
+  # update docker engine to the desired version
+  - sudo apt-get -o Dpkg::Options::="--force-confnew" install -y docker-engine=1.13.1-0~ubuntu-trusty
+
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/1.13.0/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
+
+  # check running "docker engine" and "docker-compose" version on travis
+  - docker --version
+  - docker-compose --version
+
+install:
+  - if [[ "$CHECK_PHP_SYNTAX" == "yes" ]]; then composer require --dev --no-update friendsofphp/php-cs-fixer; fi;
+
+script:
+  - make tests TARGET=$TARGET
+
+after_script:
+  - sudo rm composer.lock && sudo composer require satooshi/php-coveralls dev-master --no-ansi --no-progress --no-interaction
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+  - vendor/bin/coveralls -v

@@ -1,0 +1,25 @@
+{
+    "name": "easycorp/easy-deploy-bundle",
+    "type": "symfony-bundle",
+    "description": "The easiest way to deploy Symfony applications",
+    "keywords": ["deploy", "deployment", "deployer"],
+    "homepage": "https://github.com/EasyCorp/easy-deploy-bundle",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Javier Eguiluz",
+            "email": "javiereguiluz@gmail.com"
+        }
+    ],
+    "require": {
+        "phpdocumentor/phpdocumentor":"~2.8",
+        "fabpot/php-cs-fixer":"1.11.*",
+        "mayflower/php-codebrowser":"~1.1",
+        "pdepend/pdepend":"~2.2",
+        "phploc/phploc":"~2.1",
+        "phpmd/phpmd":"~2.3",
+        "phpunit/phpunit":"~5.6",
+        "sebastian/phpcpd":"~2.0",
+        "squizlabs/php_codesniffer":"~2.5"
+    }
+}

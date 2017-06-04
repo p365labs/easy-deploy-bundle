@@ -1,0 +1,67 @@
+# PHP 7 Docker file with Composer installed
+FROM php:5.5
+
+# Install depdencies
+WORKDIR /easydeploy
+
+# Copy composer file first as this only changes rarely
+COPY composer_oldphp.json /easydeploy/composer.json
+
+ENV EASYDEPLOY_DEV true
+
+# Set empty environment so that Makefile commands inside container do not prepend the environment
+ENV RUN_ENV " "
+
+# Commands are taken from Makefile. Everytime the makefile is updated, this commands is rerun
+RUN mkdir -p \
+	./build/code-browser \
+	./build/docs \
+	./build/logs \
+	./build/pdepend \
+	./build/coverage
+
+RUN apt-get update && \
+    apt-get install git unzip openssh-server net-tools -y && \
+    mkdir /var/run/sshd && \
+    mkdir -p ~root/.ssh /etc/authorized_keys /etc/ssh && chmod 700 ~root/.ssh/ && \
+    echo "PermitRootLogin without-password" >> /etc/ssh/sshd_config && \
+    echo "RSAAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "AllowUsers root" >> /etc/ssh/sshd_config && \
+    cp -a /etc/ssh /etc/ssh.cache && \
+    rm -rf /var/cache/apt/* && \
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer && \
+    composer validate -vvv && \
+    composer install && \
+    composer dump-autoload
+
+
+#RUN docker-php-ext-install sockets xsl
+
+RUN rm -r /var/lib/apt/lists/*
+
+# Xdebug for coverage report
+RUN pecl install xdebug-2.4.0
+
+## PHP Configuration
+
+RUN echo "memory_limit=1024M" >> /usr/local/etc/php/conf.d/memory-limit.ini
+RUN echo "date.timezone=UTC" >> /usr/local/etc/php/conf.d/timezone.ini
+RUN echo "zend_extension=/usr/local/lib/php/extensions/no-debug-non-zts-20151012/xdebug.so" >> /usr/local/etc/php/conf.d/xdebug.ini
+
+# SSH login fix. Otherwise user is kicked off after login
+RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
+
+ENV NOTVISIBLE "in users profile"
+RUN echo "export VISIBLE=now" >> /etc/profile
+
+COPY keys /root/.ssh/
+
+#set server listening on port 22
+COPY docker-entrypoint.sh /entrypoint.sh
+EXPOSE 22
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/sbin/sshd", "-D", "-f", "/etc/ssh/sshd_config"]
+
+
+
